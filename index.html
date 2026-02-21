@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GG Clips — Torneios de Futebol Virtual</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;700&display=swap');
+:root{--bg:#0a0c10;--surface:#111420;--surface2:#181d2e;--border:#1f2640;--accent:#00e5a0;--accent2:#4f8fff;--danger:#ff3d5a;--text:#e8ecf8;--muted:#6b7594;--dim:#3a4060;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* LOGIN */
+#SL{
+  min-height:100vh;
+  background:#0a0c10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+#SL.active{display:flex}
+
+.lcard{
+  background:#111420;
+  border:1px solid #1f2640;
+  border-radius:16px;
+  padding:40px;
+  width:90%;
+  max-width:400px;
+  position:relative;
+  z-index:10;
+}
+.llogo{font-family:'Bebas Neue',sans-serif;font-size:44px;color:#00e5a0;text-align:center;letter-spacing:2px}
+.lsub{text-align:center;color:#6b7594;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:32px}
+.crow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+
+.cbtn{
+  padding:18px 10px;
+  border:2px solid #1f2640;
+  border-radius:10px;
+  background:#181d2e;
+  color:#6b7594;
+  cursor:pointer;
+  text-align:center;
+  font-family:'Barlow',sans-serif;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.cbtn:hover,.cbtn:focus,.cbtn.sel{
+  border-color:#00e5a0;
+  color:#e8ecf8;
+  background:rgba(0,229,160,.08);
+  outline:none;
+}
+.cbtn .ic{font-size:26px;display:block;margin-bottom:6px}
+
+.pwbox{display:none;margin-bottom:14px}
+.pwbox.vis{display:block}
+.lbl{display:block;font-size:11px;color:#6b7594;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+.inp{
+  width:100%;padding:12px 14px;
+  background:#181d2e;border:1px solid #1f2640;
+  border-radius:10px;color:#e8ecf8;
+  font-family:'Barlow',sans-serif;font-size:15px;
+  outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.inp:focus{border-color:#00e5a0}
+.inp::placeholder{color:#3a4060}
+select.inp{cursor:pointer}
+select.inp option{background:#181d2e}
+textarea.inp{resize:vertical;min-height:90px}
+.fg{margin-bottom:14px}
+
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 20px;border:none;border-radius:10px;
+  font-family:'Barlow',sans-serif;font-weight:700;font-size:13px;
+  cursor:pointer;text-transform:uppercase;letter-spacing:.5px;
+  transition:all .2s;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btnp{background:#00e5a0;color:#0a0c10;width:100%}
+.btnp:active{background:#00c98a}
+.btng{background:#181d2e;border:1px solid #1f2640;color:#6b7594}
+.btng:active{border-color:#6b7594;color:#e8ecf8}
+.btnd{background:rgba(255,61,90,.1);border:1px solid rgba(255,61,90,.3);color:#ff3d5a}
+.btnd:active{background:rgba(255,61,90,.2)}
+.btnsm{padding:7px 13px;font-size:11px}
+
+.errmsg{color:#ff3d5a;font-size:13px;margin-top:6px;display:none}
+
+/* APP */
+#SA{display:none}
+#SA.active{display:block}
+
+.topnav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,12,16,.95);
+  border-bottom:1px solid #1f2640;
+  padding:0 20px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.navlogo{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#00e5a0;letter-spacing:2px}
+.navright{display:flex;align-items:center;gap:10px}
+.badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:4px 10px;border-radius:20px}
+.badgea{background:rgba(0,229,160,.1);color:#00e5a0;border:1px solid rgba(0,229,160,.3)}
+.badgev{background:rgba(79,143,255,.1);color:#4f8fff;border:1px solid rgba(79,143,255,.3)}
+
+.layout{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 58px)}
+.sidebar{border-right:1px solid #1f2640;padding:16px 0;background:#111420;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.sl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#3a4060;padding:0 16px;margin:14px 0 5px}
+.si{
+  display:flex;align-items:center;gap:10px;padding:11px 16px;
+  color:#6b7594;cursor:pointer;font-size:14px;font-weight:500;
+  border-left:2px solid transparent;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.si:hover,.si:active{color:#e8ecf8;background:rgba(255,255,255,.03)}
+.si.on{color:#00e5a0;background:rgba(0,229,160,.05);border-left-color:#00e5a0}
+
+.main{padding:24px 28px;max-width:1060px}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px}
+.ptitle{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1px;line-height:1}
+.psub{color:#6b7594;font-size:13px;margin-top:4px}
+
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.g2c{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.card{background:#111420;border:1px solid #1f2640;border-radius:10px;overflow:hidden}
+.cimg{width:100%;height:120px;background:#181d2e;display:flex;align-items:center;justify-content:center;font-size:48px}
+.cbody{padding:14px}
+.ctitle{font-weight:700;font-size:15px;margin-bottom:3px}
+.cmeta{color:#6b7594;font-size:13px}
+.cact{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #1f2640;flex-wrap:wrap}
+
+.st{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.stdr{background:rgba(107,117,148,.15);color:#6b7594}
+.stpu{background:rgba(0,229,160,.12);color:#00e5a0}
+.stfi{background:rgba(79,143,255,.12);color:#4f8fff}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+.scard{background:#111420;border:1px solid #1f2640;border-radius:10px;padding:18px}
+.slbl{font-size:11px;color:#6b7594;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.sval{font-family:'Bebas Neue',sans-serif;font-size:40px;color:#e8ecf8;line-height:1}
+.schg{font-size:12px;color:#00e5a0;margin-top:2px}
+
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;padding:10px 13px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7594;border-bottom:1px solid #1f2640;font-weight:600}
+tbody tr{border-bottom:1px solid rgba(31,38,64,.5)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+td{padding:12px 13px;vertical-align:middle}
+.av{width:32px;height:32px;border-radius:50%;background:#181d2e;display:inline-flex;align-items:center;justify-content:center;font-size:16px;border:1px solid #1f2640;margin-right:7px;vertical-align:middle}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.mo.open{opacity:1;pointer-events:all}
+.md{background:#111420;border:1px solid #1f2640;border-radius:14px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #1f2640}
+.mt{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.mx{width:28px;height:28px;background:#181d2e;border:1px solid #1f2640;border-radius:6px;color:#6b7594;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;-webkit-tap-highlight-color:transparent}
+.mx:active{color:#e8ecf8}
+.mb{padding:20px}
+.mf{display:flex;gap:10px;justify-content:flex-end;padding:13px 20px;border-top:1px solid #1f2640}
+
+.ni{background:#111420;border:1px solid #1f2640;border-radius:10px;overflow:hidden;display:grid;grid-template-columns:160px 1fr;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ni:active{border-color:rgba(0,229,160,.3)}
+.nth{background:#181d2e;display:flex;align-items:center;justify-content:center;font-size:44px;min-height:110px}
+.nc{padding:16px 18px}
+.ntag{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#00e5a0;margin-bottom:5px;font-weight:600}
+.ntitle{font-size:17px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.nexc{color:#6b7594;font-size:13px;line-height:1.6}
+.ndate{color:#3a4060;font-size:12px;margin-top:8px}
+
+.cbox{background:#181d2e;border:1px solid #1f2640;border-radius:10px;padding:13px;margin-bottom:9px}
+.cauth{font-weight:600;font-size:14px}
+.ctime{color:#3a4060;font-size:12px}
+.ctxt{color:#6b7594;font-size:14px;line-height:1.55;margin-top:5px}
+
+.plcard{background:#111420;border:1px solid #1f2640;border-radius:10px;padding:16px;display:flex;gap:13px;align-items:flex-start}
+.plav{width:52px;height:52px;border-radius:50%;background:#181d2e;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #1f2640;flex-shrink:0}
+.pname{font-weight:700;font-size:15px}
+.ppos{color:#00e5a0;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.pnum{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#3a4060;line-height:1}
+.spill{display:inline-flex;flex-direction:column;align-items:center;background:#181d2e;border:1px solid #1f2640;border-radius:8px;padding:7px 12px;min-width:60px}
+.spv{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00e5a0;line-height:1}
+.spl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6b7594;margin-top:2px}
+
+.tabs{display:flex;gap:3px;margin-bottom:20px;background:#181d2e;border-radius:8px;padding:4px;width:fit-content}
+.tab{padding:7px 15px;border-radius:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;color:#6b7594;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.tab.on{background:#00e5a0;color:#0a0c10}
+
+.TC{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{background:#111420;border:1px solid #1f2640;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,.4);animation:tin .25s ease;display:flex;align-items:center;gap:8px}
+.tok{border-color:rgba(0,229,160,.4)}.ter{border-color:rgba(255,61,90,.4)}
+@keyframes tin{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.empty{text-align:center;padding:48px 20px;color:#6b7594}
+.eic{font-size:44px;margin-bottom:12px;opacity:.5}
+.back{display:inline-flex;align-items:center;gap:7px;color:#6b7594;cursor:pointer;font-size:13px;margin-bottom:20px;-webkit-tap-highlight-color:transparent}
+.back:active{color:#e8ecf8}
+.divider{height:1px;background:#1f2640;margin:20px 0}
+.spin{width:18px;height:18px;border:2px solid #1f2640;border-top-color:#00e5a0;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#6b7594;font-size:14px;gap:10px}
+
+@media(max-width:640px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .g3,.g4{grid-template-columns:repeat(2,1fr)}
+  .ni{grid-template-columns:1fr}
+  .nth{min-height:80px}
+  .main{padding:16px}
+  .g2c{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="TC" id="TC"></div>
+
+<!-- LOGIN -->
+<div id="SL" class="active">
+  <div class="lcard">
+    <div class="llogo">GGCLIPS</div>
+    <div class="lsub">Torneios de Futebol Virtual</div>
+    <div class="crow">
+      <button type="button" class="cbtn" id="btnA" onclick="pickRole('admin',this)">
+        <span class="ic">🔐</span>ADMIN
+      </button>
+      <button type="button" class="cbtn" id="btnV" onclick="pickRole('visitor',this)">
+        <span class="ic">👀</span>VISITANTE
+      </button>
+    </div>
+    <div class="pwbox" id="pwbox">
+      <label class="lbl">Senha</label>
+      <input type="password" class="inp" id="pwInp" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="errmsg" id="pwErr">❌ Senha incorreta</div>
+      <button type="button" class="btn btnp" style="margin-top:14px" onclick="doLogin()">Entrar como Admin</button>
+    </div>
+    <div id="visDiv" style="display:none">
+      <button type="button" class="btn btng" style="width:100%" onclick="enter('visitor')">Entrar como Visitante →</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="SA">
+  <nav class="topnav">
+    <span class="navlogo">GGCLIPS</span>
+    <div class="navright">
+      <span id="roleB" class="badge"></span>
+      <button type="button" class="btn btng btnsm" onclick="doLogout()">Sair</button>
+    </div>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sl">Público</div>
+      <div class="si" id="nav-tournaments" onclick="go('tournaments')"><span>🏆</span> Torneios</div>
+      <div class="si" id="nav-newsfeed" onclick="go('newsfeed')"><span>📰</span> Notícias</div>
+      <div id="adminNav" style="display:none">
+        <div class="sl">Admin</div>
+        <div class="si" id="nav-dashboard" onclick="go('dashboard')"><span>📊</span> Dashboard</div>
+        <div class="si" id="nav-atournaments" onclick="go('atournaments')"><span>🏆</span> Torneios</div>
+        <div class="si" id="nav-ateams" onclick="go('ateams')"><span>🛡️</span> Times</div>
+        <div class="si" id="nav-aplayers" onclick="go('aplayers')"><span>⚽</span> Jogadores</div>
+        <div class="si" id="nav-anews" onclick="go('anews')"><span>📰</span> Notícias</div>
+        <div class="si" id="nav-acomments" onclick="go('acomments')"><span>💬</span> Comentários</div>
+      </div>
+    </aside>
+    <main class="main" id="MC"></main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="MO" onclick="if(event.target===this)closeM()">
+  <div class="md">
+    <div class="mh">
+      <div class="mt" id="MT"></div>
+      <button type="button" class="mx" onclick="closeM()">✕</button>
+    </div>
+    <div class="mb" id="MB"></div>
+    <div class="mf" id="MF"></div>
+  </div>
+</div>
+
+<script>
+// SUPABASE
+var SURL = 'https://yhtmyfopqugidxlexcwq.supabase.co';
+var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlodG15Zm9wcXVnaWR4bGV4Y3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MjQyMjksImV4cCI6MjA4NzIwMDIyOX0.9yUNgWFsWQB1fGc_fIm7Q7jBmusMg8TIsUlCrFYYAIs';
+var sb = supabase.createClient(SURL, SKEY);
+
+var role = null;
+var eid = null;
+
+// AUTH
+function pickRole(r, btn) {
+  document.querySelectorAll('.cbtn').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  if (r === 'admin') {
+    document.getElementById('pwbox').classList.add('vis');
+    document.getElementById('visDiv').style.display = 'none';
+    document.getElementById('pwInp').focus();
+  } else {
+    document.getElementById('pwbox').classList.remove('vis');
+    document.getElementById('visDiv').style.display = 'block';
+  }
+}
+
+function doLogin() {
+  var pw = document.getElementById('pwInp').value;
+  if (pw === 'ggclips') {
+    enter('admin');
+  } else {
+    var e = document.getElementById('pwErr');
+    e.style.display = 'block';
+    setTimeout(function(){ e.style.display = 'none'; }, 2500);
+  }
+}
+
+function enter(r) {
+  role = r;
+  document.getElementById('SL').classList.remove('active');
+  document.getElementById('SL').style.display = 'none';
+  document.getElementById('SA').style.display = 'block';
+  var b = document.getElementById('roleB');
+  b.textContent = r === 'admin' ? '⚡ Admin' : '👀 Visitante';
+  b.className = 'badge ' + (r === 'admin' ? 'badgea' : 'badgev');
+  if (r === 'admin') {
+    document.getElementById('adminNav').style.display = 'block';
+    go('dashboard');
+  } else {
+    go('tournaments');
+  }
+}
+
+function doLogout() {
+  role = null;
+  document.getElementById('SA').style.display = 'none';
+  document.getElementById('SL').style.display = 'flex';
+  document.getElementById('SL').classList.add('active');
+  document.getElementById('pwInp').value = '';
+  document.getElementById('pwbox').classList.remove('vis');
+  document.getElementById('visDiv').style.display = 'none';
+  document.getElementById('adminNav').style.display = 'none';
+  document.querySelectorAll('.cbtn').forEach(function(b){ b.classList.remove('sel'); });
+}
+
+// NAV
+function go(page, data) {
+  document.querySelectorAll('.si').forEach(function(el){ el.classList.remove('on'); });
+  var nav = document.getElementById('nav-' + page);
+  if (nav) nav.classList.add('on');
+  var map = {
+    dashboard: pgDash, tournaments: pgTournaments, newsfeed: pgNews,
+    atournaments: pgATournaments, ateams: pgATeams, aplayers: pgAPlayers,
+    anews: pgANews, acomments: pgAComments
+  };
+  if (map[page]) { map[page](); return; }
+  if (page === 'tdetail') { pgTDetail(data); return; }
+  if (page === 'ndetail') { pgNDetail(data); return; }
+}
+
+function MC() { return document.getElementById('MC'); }
+function loading() { MC().innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>'; }
+function uid() { return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function v(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+
+function stlbl(s) { return {draft:'Rascunho',published:'Publicado',finished:'Finalizado'}[s] || s; }
+function stcls(s) { return {draft:'stdr',published:'stpu',finished:'stfi'}[s] || 'stdr'; }
+
+function fdate(d) {
+  if (!d) return '';
+  var p = d.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+function fdt(iso) {
+  var d = new Date(iso);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type === 'ok' ? 'tok' : 'ter');
+  el.innerHTML = (type === 'ok' ? '✅' : '❌') + ' ' + msg;
+  document.getElementById('TC').appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3000);
+}
+
+function openM(title, body, actions) {
+  document.getElementById('MT').textContent = title;
+  document.getElementById('MB').innerHTML = body;
+  document.getElementById('MF').innerHTML = (actions || []).map(function(a){
+    return '<button type="button" class="btn ' + (a.g ? 'btng' : 'btnp') + '" onclick="' + a.a + '">' + a.l + '</button>';
+  }).join('');
+  document.getElementById('MO').classList.add('open');
+}
+function closeM() {
+  document.getElementById('MO').classList.remove('open');
+  eid = null;
+}
+
+// DASHBOARD
+async function pgDash() {
+  loading();
+  var r = await Promise.all([
+    sb.from('tournaments').select('*'),
+    sb.from('teams').select('*'),
+    sb.from('players').select('*'),
+    sb.from('news').select('*'),
+    sb.from('comments').select('*')
+  ]);
+  var T=r[0].data||[], TM=r[1].data||[], P=r[2].data||[], N=r[3].data||[], C=r[4].data||[];
+  MC().innerHTML =
+    '<div class="ph"><div><div class="ptitle">Dashboard</div><div class="psub">Visão geral</div></div></div>' +
+    '<div class="g4" style="margin-bottom:24px">' +
+      '<div class="scard"><div class="slbl">Torneios</div><div class="sval">' + T.length + '</div><div class="schg">' + T.filter(function(x){return x.status==='published';}).length + ' publicados</div></div>' +
+      '<div class="scard"><div class="slbl">Times</div><div class="sval">' + TM.length + '</div></div>' +
+      '<div class="scard"><div class="slbl">Jogadores</div><div class="sval">' + P.length + '</div></div>' +
+      '<div class="scard"><div class="slbl">Comentários</div><div class="sval">' + C.length + '</div></div>' +
+    '</div>' +
+    '<div class="g2">' +
+      '<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Torneios</div>' +
+      T.slice(0,4).map(function(x){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#111420;border:1px solid #1f2640;border-radius:8px;margin-bottom:7px">' +
+          '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">' + x.emoji + '</span>' +
+          '<div><div style="font-weight:600;font-size:13px">' + x.name + '</div><span class="st ' + stcls(x.status) + '"><span class="dot"></span>' + stlbl(x.status) + '</span></div></div>' +
+          '<button type="button" class="btn btng btnsm" onclick="go(\'atournaments\')">Editar</button></div>';
+      }).join('') + '</div>' +
+      '<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Notícias</div>' +
+      N.slice(0,4).map(function(x){
+        return '<div style="padding:11px 13px;background:#111420;border:1px solid #1f2640;border-radius:8px;margin-bottom:7px">' +
+          '<div style="font-weight:600;font-size:13px;margin-bottom:2px">' + x.emoji + ' ' + x.title + '</div>' +
+          '<div style="color:#6b7594;font-size:12px">' + fdate(x.date) + ' · ' + (x.published ? '✅ Publicado' : '🔲 Rascunho') + '</div></div>';
+      }).join('') + '</div>' +
+    '</div>';
+}
+
+// TORNEIOS PÚBLICO
+async function pgTournaments() {
+  loading();
+  var {data} = await sb.from('tournaments').select('*').order('created_at', {ascending:false});
+  var list = (data||[]).filter(function(t){ return t.status==='published' || role==='admin'; });
+  var html = '<div class="ph"><div><div class="ptitle">Torneios</div><div class="psub">Campeonatos em andamento</div></div></div><div class="g3">';
+  if (!list.length) {
+    html += '<div class="empty" style="grid-column:1/-1"><div class="eic">🏆</div><div>Nenhum torneio publicado</div></div>';
+  } else {
+    list.forEach(function(t){
+      html += '<div class="card" style="cursor:pointer" onclick="go(\'tdetail\',\'' + t.id + '\')">' +
+        '<div class="cimg">' + t.emoji + '</div>' +
+        '<div class="cbody"><div class="ctitle">' + t.name + '</div>' +
+        '<div class="cmeta" style="margin-bottom:8px">' + (t.description||'') + '</div>' +
+        '<span class="st ' + stcls(t.status) + '"><span class="dot"></span>' + stlbl(t.status) + '</span></div></div>';
+    });
+  }
+  html += '</div>';
+  MC().innerHTML = html;
+}
+
+// DETALHE TORNEIO
+async function pgTDetail(tid) {
+  loading();
+  var r = await Promise.all([
+    sb.from('tournaments').select('*').eq('id', tid).single(),
+    sb.from('teams').select('*').eq('tournament_id', tid),
+    sb.from('players').select('*')
+  ]);
+  var t = r[0].data, teams = r[1].data||[], players = r[2].data||[];
+  if (!t) { go('tournaments'); return; }
+  MC().innerHTML =
+    '<div class="back" onclick="go(\'tournaments\')">← Voltar</div>' +
+    '<div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:24px">' +
+      '<div style="font-size:64px">' + t.emoji + '</div>' +
+      '<div><div class="ptitle">' + t.name + '</div>' +
+      '<div class="psub" style="margin-top:5px;max-width:540px">' + (t.description||'') + '</div>' +
+      '<span class="st ' + stcls(t.status) + '" style="margin-top:10px;display:inline-flex"><span class="dot"></span>' + stlbl(t.status) + '</span></div></div>' +
+    '<div class="tabs">' +
+      '<div class="tab on" onclick="tdTab(\'times\',this,\'' + tid + '\')">Times (' + teams.length + ')</div>' +
+      '<div class="tab" onclick="tdTab(\'jogadores\',this,\'' + tid + '\')">Jogadores</div>' +
+      '<div class="tab" onclick="tdTab(\'artilharia\',this,\'' + tid + '\')">Artilharia</div>' +
+    '</div>' +
+    '<div id="TDC">' + renderTeamsTab(teams, players) + '</div>';
+}
+
+function tdTab(tab, el, tid) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  document.getElementById('TDC').innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  Promise.all([
+    sb.from('teams').select('*').eq('tournament_id', tid),
+    sb.from('players').select('*')
+  ]).then(function(r){
+    var teams=r[0].data||[], players=r[1].data||[];
+    var fn = {times:renderTeamsTab,jogadores:renderPlayersTab,artilharia:renderArtTab};
+    document.getElementById('TDC').innerHTML = fn[tab](teams, players);
+  });
+}
+
+function renderTeamsTab(teams, players) {
+  if (!teams.length) return '<div class="empty"><div class="eic">🛡️</div><div>Nenhum time</div></div>';
+  return '<div class="g3">' + teams.map(function(t){
+    var tp = players.filter(function(p){ return p.team_id===t.id; });
+    return '<div class="card"><div class="cbody">' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:9px">' +
+      '<span style="font-size:38px">' + t.emoji + '</span>' +
+      '<div><div class="ctitle">' + t.name + '</div><div class="cmeta">' + tp.length + ' jogadores</div></div></div>' +
+      '<div class="cmeta">' + (t.description||'') + '</div></div>' +
+      '<div class="cact"><button type="button" class="btn btng btnsm" onclick="showTeamPlayers(\'' + t.id + '\')">Ver Elenco</button></div></div>';
+  }).join('') + '</div>';
+}
+
+async function showTeamPlayers(tmid) {
+  var r = await Promise.all([
+    sb.from('teams').select('*').eq('id', tmid).single(),
+    sb.from('players').select('*').eq('team_id', tmid)
+  ]);
+  var team=r[0].data, players=r[1].data||[];
+  var body = !players.length ? '<div class="empty"><div class="eic">⚽</div><div>Nenhum jogador</div></div>' :
+    '<div style="display:flex;flex-direction:column;gap:10px">' + players.map(function(p){
+      return '<div class="plcard"><div class="plav">' + p.emoji + '</div><div style="flex:1">' +
+        '<div style="display:flex;justify-content:space-between"><div><div class="pname">' + p.name + '</div><div class="ppos">' + p.pos + '</div></div><div class="pnum">' + p.num + '</div></div>' +
+        '<div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap">' +
+        '<div class="spill"><span class="spv">' + p.goals + '</span><span class="spl">Gols</span></div>' +
+        '<div class="spill"><span class="spv">' + p.assists + '</span><span class="spl">Assists</span></div>' +
+        '<div class="spill"><span class="spv">' + p.cards + '</span><span class="spl">Cartões</span></div>' +
+        '<div class="spill"><span class="spv">' + p.matches + '</span><span class="spl">Partidas</span></div>' +
+        '</div></div></div>';
+    }).join('') + '</div>';
+  openM(team.emoji + ' ' + team.name, body, []);
+}
+
+function renderPlayersTab(teams, players) {
+  var all = players.filter(function(p){ return teams.find(function(t){ return t.id===p.team_id; }); });
+  if (!all.length) return '<div class="empty"><div class="eic">⚽</div><div>Nenhum jogador</div></div>';
+  return '<div style="display:flex;flex-direction:column;gap:10px">' + all.map(function(p){
+    var t = teams.find(function(x){ return x.id===p.team_id; });
+    return '<div class="plcard"><div class="plav">' + p.emoji + '</div><div style="flex:1">' +
+      '<div style="display:flex;justify-content:space-between"><div><div class="pname">' + p.name + '</div>' +
+      '<div style="display:flex;gap:7px;align-items:center;margin-top:2px"><span class="ppos">' + p.pos + '</span>' +
+      (t ? '<span style="color:#3a4060;font-size:12px">· ' + t.emoji + ' ' + t.name + '</span>' : '') +
+      '</div></div><div class="pnum">' + p.num + '</div></div>' +
+      '<div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap">' +
+      '<div class="spill"><span class="spv">' + p.goals + '</span><span class="spl">Gols</span></div>' +
+      '<div class="spill"><span class="spv">' + p.assists + '</span><span class="spl">Assists</span></div>' +
+      '<div class="spill"><span class="spv">' + p.cards + '</span><span class="spl">Cartões</span></div>' +
+      '<div class="spill"><span class="spv">' + p.matches + '</span><span class="spl">Partidas</span></div>' +
+      '</div></div></div>';
+  }).join('') + '</div>';
+}
+
+function renderArtTab(players, teams) {
+  var sorted = players.filter(function(p){ return teams.find(function(t){ return t.id===p.team_id; }); })
+    .sort(function(a,b){ return b.goals-a.goals; });
+  var rows = sorted.map(function(p, i){
+    var t = teams.find(function(x){ return x.id===p.team_id; });
+    var c = i===0?'#00e5a0':i===1?'#c0c0c0':i===2?'#cd7f32':'#6b7594';
+    return '<tr><td style="color:'+c+';font-weight:700;font-family:\'Bebas Neue\';font-size:20px">'+(i+1)+'</td>' +
+      '<td><span class="av">'+p.emoji+'</span><strong>'+p.name+'</strong></td>' +
+      '<td>'+(t?t.emoji+' '+t.name:'—')+'</td>' +
+      '<td style="text-align:center;font-family:\'Bebas Neue\';font-size:20px;color:#00e5a0">'+p.goals+'</td>' +
+      '<td style="text-align:center">'+p.assists+'</td>' +
+      '<td style="text-align:center">'+p.matches+'</td></tr>';
+  }).join('');
+  return '<div class="tw"><table><thead><tr><th>#</th><th>Jogador</th><th>Time</th><th style="text-align:center">Gols</th><th style="text-align:center">Assists</th><th style="text-align:center">Partidas</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="6" style="text-align:center;padding:40px;color:#3a4060">Nenhum dado</td></tr>') +
+    '</tbody></table></div>';
+}
+
+// NOTÍCIAS
+async function pgNews() {
+  loading();
+  var {data} = await sb.from('news').select('*').order('date', {ascending:false});
+  var list = (data||[]).filter(function(n){ return n.published || role==='admin'; });
+  var html = '<div class="ph"><div><div class="ptitle">Notícias</div><div class="psub">Últimas novidades</div></div></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">📰</div><div>Nenhuma notícia publicada</div></div>';
+  } else {
+    list.forEach(function(n){
+      html += '<div class="ni" onclick="go(\'ndetail\',\'' + n.id + '\')">' +
+        '<div class="nth">' + n.emoji + '</div>' +
+        '<div class="nc"><div class="ntag">' + n.tag + '</div>' +
+        '<div class="ntitle">' + n.title + '</div>' +
+        '<div class="nexc">' + (n.content||'').slice(0,110) + '...</div>' +
+        '<div class="ndate">📅 ' + fdate(n.date) + (!n.published ? ' · <span style="color:#f5a623">Não publicado</span>' : '') + '</div></div></div>';
+    });
+  }
+  MC().innerHTML = html;
+}
+
+// DETALHE NOTÍCIA
+async function pgNDetail(nid) {
+  loading();
+  var r = await Promise.all([
+    sb.from('news').select('*').eq('id', nid).single(),
+    sb.from('comments').select('*').eq('ref_id', nid).order('created_at', {ascending:true})
+  ]);
+  var n=r[0].data, comments=r[1].data||[];
+  if (!n) { go('newsfeed'); return; }
+  var commHtml = comments.map(function(c){
+    return '<div class="cbox">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">' +
+      '<span class="cauth">👤 ' + c.author + '</span>' +
+      '<div style="display:flex;gap:8px;align-items:center"><span class="ctime">' + fdt(c.created_at) + '</span>' +
+      (role==='admin' ? '<button type="button" class="btn btnd btnsm" onclick="delComment(\'' + c.id + '\',\'' + nid + '\')">Excluir</button>' : '') +
+      '</div></div><div class="ctxt">' + c.body + '</div></div>';
+  }).join('');
+  MC().innerHTML =
+    '<div class="back" onclick="go(\'newsfeed\')">← Voltar</div>' +
+    '<div style="width:100%;height:220px;background:#181d2e;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:76px;margin-bottom:20px">' + n.emoji + '</div>' +
+    '<div style="max-width:680px">' +
+      '<div class="ntag">' + n.tag + '</div>' +
+      '<h1 style="font-family:\'Bebas Neue\',sans-serif;font-size:38px;line-height:1.1;margin:7px 0 12px">' + n.title + '</h1>' +
+      '<div style="color:#6b7594;font-size:13px;margin-bottom:20px">📅 ' + fdate(n.date) + '</div>' +
+      '<div style="font-size:15px;line-height:1.8">' + n.content + '</div>' +
+      '<div class="divider"></div>' +
+      '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Comentários (' + comments.length + ')</div>' +
+      commHtml +
+      '<div style="margin-top:20px">' +
+        '<div style="font-weight:600;margin-bottom:11px">Deixe um comentário</div>' +
+        '<div class="fg"><input type="text" class="inp" id="cauth" placeholder="Seu nome..."></div>' +
+        '<div class="fg"><textarea class="inp" id="ctxt" style="min-height:75px" placeholder="Escreva..."></textarea></div>' +
+        '<button type="button" class="btn btnp" style="width:auto" id="btnCmt" onclick="addComment(\'' + nid + '\')">Comentar</button>' +
+      '</div>' +
+    '</div>';
+}
+
+async function addComment(nid) {
+  var a = v('cauth').trim(), t = v('ctxt').trim();
+  if (!a || !t) { toast('Preencha nome e comentário','er'); return; }
+  var btn = document.getElementById('btnCmt');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  var {error} = await sb.from('comments').insert({id:uid(),ref_id:nid,author:a,body:t});
+  if (error) { toast('Erro: ' + error.message,'er'); btn.disabled=false; btn.textContent='Comentar'; return; }
+  toast('Comentário enviado!','ok');
+  pgNDetail(nid);
+}
+
+async function delComment(cid, nid) {
+  if (!confirm('Excluir?')) return;
+  await sb.from('comments').delete().eq('id', cid);
+  toast('Excluído','ok');
+  pgNDetail(nid);
+}
+
+// ADMIN TORNEIOS
+async function pgATournaments() {
+  loading();
+  var r = await Promise.all([
+    sb.from('tournaments').select('*').order('created_at',{ascending:false}),
+    sb.from('teams').select('id,tournament_id')
+  ]);
+  var list=r[0].data||[], teams=r[1].data||[];
+  var html = '<div class="ph"><div><div class="ptitle">Torneios</div><div class="psub">' + list.length + ' torneio(s)</div></div>' +
+    '<button type="button" class="btn btnp" style="width:auto" onclick="mTournament()">+ Novo</button></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">🏆</div><div>Nenhum torneio</div></div>';
+  } else {
+    html += '<div class="tw"><table><thead><tr><th>Torneio</th><th>Status</th><th>Times</th><th>Ações</th></tr></thead><tbody>';
+    list.forEach(function(t){
+      var tc = teams.filter(function(x){ return x.tournament_id===t.id; }).length;
+      html += '<tr>' +
+        '<td><span style="font-size:20px;margin-right:8px">' + t.emoji + '</span><strong>' + t.name + '</strong>' +
+        '<div style="color:#6b7594;font-size:12px;margin-top:1px">' + (t.description||'').slice(0,50) + '...</div></td>' +
+        '<td><span class="st ' + stcls(t.status) + '"><span class="dot"></span>' + stlbl(t.status) + '</span></td>' +
+        '<td>' + tc + '</td>' +
+        '<td><div style="display:flex;gap:5px;flex-wrap:wrap">' +
+        '<button type="button" class="btn btng btnsm" onclick="mTournament(\'' + t.id + '\')">Editar</button>' +
+        '<button type="button" class="btn btng btnsm" onclick="toggleT(\'' + t.id + '\',\'' + t.status + '\')">' + (t.status==='published'?'Tirar':'Publicar') + '</button>' +
+        '<button type="button" class="btn btnd btnsm" onclick="delT(\'' + t.id + '\')">Excluir</button>' +
+        '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  MC().innerHTML = html;
+}
+
+function mTournament(id) {
+  eid = id || null;
+  if (id) {
+    sb.from('tournaments').select('*').eq('id',id).single().then(function(r){ _mT(r.data); });
+  } else { _mT(null); }
+}
+function _mT(t) {
+  openM(t?'Editar Torneio':'Novo Torneio',
+    '<div class="fg"><label class="lbl">Emoji</label><input type="text" class="inp" id="fe" value="' + (t?t.emoji:'🏆') + '" maxlength="2"></div>' +
+    '<div class="fg"><label class="lbl">Nome *</label><input type="text" class="inp" id="fn" value="' + (t?t.name:'') + '" placeholder="Nome do torneio..."></div>' +
+    '<div class="fg"><label class="lbl">Descrição *</label><textarea class="inp" id="fd">' + (t?t.description:'') + '</textarea></div>' +
+    '<div class="fg"><label class="lbl">Status</label><select class="inp" id="fs">' +
+    '<option value="draft"' + (t&&t.status==='draft'?' selected':'') + '>Rascunho</option>' +
+    '<option value="published"' + (t&&t.status==='published'?' selected':'') + '>Publicado</option>' +
+    '<option value="finished"' + (t&&t.status==='finished'?' selected':'') + '>Finalizado</option>' +
+    '</select></div>',
+    [{l:'Cancelar',a:'closeM()',g:true},{l:t?'Salvar':'Criar',a:'saveTournament()'}]);
+}
+async function saveTournament() {
+  var n=v('fn'),d=v('fd'),e=v('fe')||'🏆',s=v('fs');
+  if (!n||!d) { toast('Preencha nome e descrição','er'); return; }
+  var pl={name:n,description:d,emoji:e,status:s};
+  var err;
+  if (eid) { var r=await sb.from('tournaments').update(pl).eq('id',eid); err=r.error; }
+  else { var r=await sb.from('tournaments').insert({id:uid(),...pl}); err=r.error; }
+  if (err) { toast('Erro: '+err.message,'er'); return; }
+  toast(eid?'Atualizado!':'Criado!','ok'); closeM(); pgATournaments();
+}
+async function toggleT(id,status) {
+  var novo = status==='published'?'draft':'published';
+  await sb.from('tournaments').update({status:novo}).eq('id',id);
+  toast(novo==='published'?'Publicado!':'Despublicado','ok'); pgATournaments();
+}
+async function delT(id) {
+  if (!confirm('Excluir torneio?')) return;
+  await sb.from('tournaments').delete().eq('id',id);
+  toast('Excluído','ok'); pgATournaments();
+}
+
+// ADMIN TIMES
+async function pgATeams() {
+  loading();
+  var r = await Promise.all([sb.from('teams').select('*'), sb.from('tournaments').select('id,name,emoji')]);
+  var list=r[0].data||[], tours=r[1].data||[];
+  var html = '<div class="ph"><div><div class="ptitle">Times</div><div class="psub">' + list.length + ' time(s)</div></div>' +
+    '<button type="button" class="btn btnp" style="width:auto" onclick="mTeam()">+ Novo</button></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">🛡️</div><div>Nenhum time</div></div>';
+  } else {
+    html += '<div class="tw"><table><thead><tr><th>Time</th><th>Torneio</th><th>Ações</th></tr></thead><tbody>';
+    list.forEach(function(t){
+      var tour = tours.find(function(x){ return x.id===t.tournament_id; });
+      html += '<tr><td><span style="font-size:19px;margin-right:7px">' + t.emoji + '</span><strong>' + t.name + '</strong></td>' +
+        '<td>' + (tour?tour.emoji+' '+tour.name:'—') + '</td>' +
+        '<td><div style="display:flex;gap:5px">' +
+        '<button type="button" class="btn btng btnsm" onclick="mTeam(\'' + t.id + '\')">Editar</button>' +
+        '<button type="button" class="btn btnd btnsm" onclick="delTm(\'' + t.id + '\')">Excluir</button>' +
+        '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  MC().innerHTML = html;
+}
+async function mTeam(id) {
+  eid = id||null;
+  var {data:tours} = await sb.from('tournaments').select('id,name,emoji');
+  var t = null;
+  if (id) { var r=await sb.from('teams').select('*').eq('id',id).single(); t=r.data; }
+  var toursOpts = (tours||[]).map(function(x){ return '<option value="'+x.id+'"'+(t&&t.tournament_id===x.id?' selected':'')+'>'+x.emoji+' '+x.name+'</option>'; }).join('');
+  openM(t?'Editar Time':'Novo Time',
+    '<div class="g2c"><div class="fg"><label class="lbl">Emoji</label><input type="text" class="inp" id="fe" value="'+(t?t.emoji:'🛡️')+'" maxlength="2"></div>' +
+    '<div class="fg"><label class="lbl">Nome *</label><input type="text" class="inp" id="fn" value="'+(t?t.name:'')+'" placeholder="Nome..."></div></div>' +
+    '<div class="fg"><label class="lbl">Torneio</label><select class="inp" id="ft"><option value="">— Nenhum —</option>'+toursOpts+'</select></div>' +
+    '<div class="fg"><label class="lbl">Descrição</label><textarea class="inp" id="fd">'+(t?t.description||'':'')+'</textarea></div>',
+    [{l:'Cancelar',a:'closeM()',g:true},{l:t?'Salvar':'Criar Time',a:'saveTeam()'}]);
+}
+async function saveTeam() {
+  var n=v('fn'),e=v('fe')||'🛡️',d=v('fd'),tid=v('ft');
+  if (!n) { toast('Informe o nome','er'); return; }
+  var pl={name:n,emoji:e,description:d,tournament_id:tid||null};
+  var err;
+  if (eid) { var r=await sb.from('teams').update(pl).eq('id',eid); err=r.error; }
+  else { var r=await sb.from('teams').insert({id:uid(),...pl}); err=r.error; }
+  if (err) { toast('Erro: '+err.message,'er'); return; }
+  toast(eid?'Atualizado!':'Criado!','ok'); closeM(); pgATeams();
+}
+async function delTm(id) {
+  if (!confirm('Excluir time?')) return;
+  await sb.from('teams').delete().eq('id',id);
+  toast('Excluído','ok'); pgATeams();
+}
+
+// ADMIN JOGADORES
+async function pgAPlayers() {
+  loading();
+  var r = await Promise.all([sb.from('players').select('*'), sb.from('teams').select('id,name,emoji')]);
+  var list=r[0].data||[], teams=r[1].data||[];
+  var html = '<div class="ph"><div><div class="ptitle">Jogadores</div><div class="psub">' + list.length + ' jogador(es)</div></div>' +
+    '<button type="button" class="btn btnp" style="width:auto" onclick="mPlayer()">+ Novo</button></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">⚽</div><div>Nenhum jogador</div></div>';
+  } else {
+    html += '<div class="tw"><table><thead><tr><th>Jogador</th><th>Posição</th><th>Time</th><th style="text-align:center">Gols</th><th style="text-align:center">Assists</th><th>Ações</th></tr></thead><tbody>';
+    list.forEach(function(p){
+      var tm = teams.find(function(t){ return t.id===p.team_id; });
+      html += '<tr><td><span class="av">'+p.emoji+'</span><strong>'+p.name+'</strong><span style="color:#3a4060;font-size:12px;margin-left:5px">#'+p.num+'</span></td>' +
+        '<td>'+p.pos+'</td><td>'+(tm?tm.emoji+' '+tm.name:'—')+'</td>' +
+        '<td style="text-align:center">'+p.goals+'</td><td style="text-align:center">'+p.assists+'</td>' +
+        '<td><div style="display:flex;gap:5px">' +
+        '<button type="button" class="btn btng btnsm" onclick="mPlayer(\''+p.id+'\')">Editar</button>' +
+        '<button type="button" class="btn btnd btnsm" onclick="delP(\''+p.id+'\')">Excluir</button>' +
+        '</div></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  MC().innerHTML = html;
+}
+async function mPlayer(id) {
+  eid = id||null;
+  var {data:teams} = await sb.from('teams').select('id,name,emoji');
+  var p = null;
+  if (id) { var r=await sb.from('players').select('*').eq('id',id).single(); p=r.data; }
+  var pos=['Goleiro','Defensor','Meio-campista','Atacante'];
+  var posOpts = pos.map(function(x){ return '<option'+(p&&p.pos===x?' selected':'')+'>'+x+'</option>'; }).join('');
+  var teamOpts = (teams||[]).map(function(t){ return '<option value="'+t.id+'"'+(p&&p.team_id===t.id?' selected':'')+'>'+t.emoji+' '+t.name+'</option>'; }).join('');
+  openM(p?'Editar Jogador':'Novo Jogador',
+    '<div class="g2c"><div class="fg"><label class="lbl">Emoji</label><input type="text" class="inp" id="fe" value="'+(p?p.emoji:'⚽')+'" maxlength="2"></div>' +
+    '<div class="fg"><label class="lbl">Nome *</label><input type="text" class="inp" id="fn" value="'+(p?p.name:'')+'" placeholder="Nome..."></div></div>' +
+    '<div class="g2c"><div class="fg"><label class="lbl">Posição</label><select class="inp" id="fp">'+posOpts+'</select></div>' +
+    '<div class="fg"><label class="lbl">Número</label><input type="number" class="inp" id="fnum" value="'+(p?p.num:10)+'" min="1" max="99"></div></div>' +
+    '<div class="fg"><label class="lbl">Time</label><select class="inp" id="ft"><option value="">— Nenhum —</option>'+teamOpts+'</select></div>' +
+    '<div style="font-size:11px;color:#6b7594;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Estatísticas</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' +
+    '<div class="fg"><label class="lbl">Gols</label><input type="number" class="inp" id="fg_" value="'+(p?p.goals:0)+'" min="0"></div>' +
+    '<div class="fg"><label class="lbl">Assists</label><input type="number" class="inp" id="fa_" value="'+(p?p.assists:0)+'" min="0"></div>' +
+    '<div class="fg"><label class="lbl">Cartões</label><input type="number" class="inp" id="fc_" value="'+(p?p.cards:0)+'" min="0"></div>' +
+    '<div class="fg"><label class="lbl">Partidas</label><input type="number" class="inp" id="fm_" value="'+(p?p.matches:0)+'" min="0"></div></div>',
+    [{l:'Cancelar',a:'closeM()',g:true},{l:p?'Salvar':'Criar',a:'savePlayer()'}]);
+}
+async function savePlayer() {
+  var n=v('fn');
+  if (!n) { toast('Informe o nome','er'); return; }
+  var pl={emoji:v('fe')||'⚽',name:n,pos:v('fp'),num:parseInt(v('fnum'))||10,team_id:v('ft')||null,goals:parseInt(v('fg_'))||0,assists:parseInt(v('fa_'))||0,cards:parseInt(v('fc_'))||0,matches:parseInt(v('fm_'))||0};
+  var err;
+  if (eid) { var r=await sb.from('players').update(pl).eq('id',eid); err=r.error; }
+  else { var r=await sb.from('players').insert({id:uid(),...pl}); err=r.error; }
+  if (err) { toast('Erro: '+err.message,'er'); return; }
+  toast(eid?'Atualizado!':'Criado!','ok'); closeM(); pgAPlayers();
+}
+async function delP(id) {
+  if (!confirm('Excluir jogador?')) return;
+  await sb.from('players').delete().eq('id',id);
+  toast('Excluído','ok'); pgAPlayers();
+}
+
+// ADMIN NOTÍCIAS
+async function pgANews() {
+  loading();
+  var r = await Promise.all([
+    sb.from('news').select('*').order('date',{ascending:false}),
+    sb.from('tournaments').select('id,name,emoji')
+  ]);
+  var list=r[0].data||[], tours=r[1].data||[];
+  var html = '<div class="ph"><div><div class="ptitle">Notícias</div><div class="psub">' + list.length + ' notícia(s) · ' + list.filter(function(n){return n.published;}).length + ' publicada(s)</div></div>' +
+    '<button type="button" class="btn btnp" style="width:auto" onclick="mNews()">+ Nova</button></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">📰</div><div>Nenhuma notícia</div></div>';
+  } else {
+    list.forEach(function(n){
+      var tour = tours.find(function(t){ return t.id===n.tournament_id; });
+      html += '<div class="card" style="margin-bottom:11px"><div class="cbody">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">' +
+        '<div><div style="font-size:11px;color:#00e5a0;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">'+n.tag+'</div>' +
+        '<div class="ctitle">'+n.emoji+' '+n.title+'</div>' +
+        '<div class="cmeta" style="margin-top:2px">'+fdate(n.date)+(tour?' · '+tour.emoji+' '+tour.name:'')+'</div></div>' +
+        '<span class="st '+(n.published?'stpu':'stdr')+'" style="white-space:nowrap"><span class="dot"></span>'+(n.published?'Publicado':'Rascunho')+'</span></div>' +
+        '<div class="cmeta" style="margin-top:7px">'+(n.content||'').slice(0,90)+'...</div></div>' +
+        '<div class="cact">' +
+        '<button type="button" class="btn btng btnsm" onclick="mNews(\''+n.id+'\')">Editar</button>' +
+        '<button type="button" class="btn btng btnsm" onclick="toggleN(\''+n.id+'\','+n.published+')">'+(n.published?'Despublicar':'Publicar')+'</button>' +
+        '<button type="button" class="btn btnd btnsm" onclick="delN(\''+n.id+'\')">Excluir</button>' +
+        '</div></div>';
+    });
+  }
+  MC().innerHTML = html;
+}
+async function mNews(id) {
+  eid = id||null;
+  var r = await Promise.all([sb.from('tournaments').select('id,name,emoji'), sb.from('teams').select('id,name,emoji')]);
+  var tours=r[0].data||[], teams=r[1].data||[];
+  var n = null;
+  if (id) { var rr=await sb.from('news').select('*').eq('id',id).single(); n=rr.data; }
+  var toursOpts = tours.map(function(t){ return '<option value="'+t.id+'"'+(n&&n.tournament_id===t.id?' selected':'')+'>'+t.emoji+' '+t.name+'</option>'; }).join('');
+  var teamsOpts = teams.map(function(t){ return '<option value="'+t.id+'"'+(n&&n.team_id===t.id?' selected':'')+'>'+t.emoji+' '+t.name+'</option>'; }).join('');
+  openM(n?'Editar Notícia':'Nova Notícia',
+    '<div class="g2c"><div class="fg"><label class="lbl">Emoji</label><input type="text" class="inp" id="fe" value="'+(n?n.emoji:'📰')+'" maxlength="2"></div>' +
+    '<div class="fg"><label class="lbl">Tag *</label><input type="text" class="inp" id="ftag" value="'+(n?n.tag:'')+'" placeholder="Ex: Resultado"></div></div>' +
+    '<div class="fg"><label class="lbl">Título *</label><input type="text" class="inp" id="fn" value="'+(n?n.title:'')+'" placeholder="Título..."></div>' +
+    '<div class="fg"><label class="lbl">Conteúdo *</label><textarea class="inp" id="fc_" style="min-height:110px">'+(n?n.content:'')+'</textarea></div>' +
+    '<div class="g2c"><div class="fg"><label class="lbl">Data</label><input type="date" class="inp" id="fd" value="'+(n?n.date:new Date().toISOString().slice(0,10))+'"></div>' +
+    '<div class="fg"><label class="lbl">Torneio</label><select class="inp" id="ft"><option value="">—</option>'+toursOpts+'</select></div></div>' +
+    '<div class="fg"><label class="lbl">Time</label><select class="inp" id="ftm"><option value="">—</option>'+teamsOpts+'</select></div>' +
+    '<div class="fg"><label style="display:flex;align-items:center;gap:9px;cursor:pointer">' +
+    '<input type="checkbox" id="fpub"'+(n&&n.published?' checked':'')+' style="width:15px;height:15px;accent-color:#00e5a0">' +
+    '<span>Publicar imediatamente</span></label></div>',
+    [{l:'Cancelar',a:'closeM()',g:true},{l:n?'Salvar':'Criar',a:'saveNews()'}]);
+}
+async function saveNews() {
+  var title=v('fn'),content=v('fc_'),tag=v('ftag');
+  if (!title||!content) { toast('Preencha título e conteúdo','er'); return; }
+  var pub = document.getElementById('fpub') ? document.getElementById('fpub').checked : false;
+  var pl={emoji:v('fe')||'📰',title:title,content:content,tag:tag||'Geral',date:v('fd'),tournament_id:v('ft')||null,team_id:v('ftm')||null,published:pub};
+  var err;
+  if (eid) { var r=await sb.from('news').update(pl).eq('id',eid); err=r.error; }
+  else { var r=await sb.from('news').insert({id:uid(),...pl}); err=r.error; }
+  if (err) { toast('Erro: '+err.message,'er'); return; }
+  toast(eid?'Atualizado!':'Criado!','ok'); closeM(); pgANews();
+}
+async function toggleN(id, pub) {
+  await sb.from('news').update({published:!pub}).eq('id',id);
+  toast(!pub?'Publicado!':'Despublicado','ok'); pgANews();
+}
+async function delN(id) {
+  if (!confirm('Excluir notícia?')) return;
+  await sb.from('news').delete().eq('id',id);
+  toast('Excluída','ok'); pgANews();
+}
+
+// ADMIN COMENTÁRIOS
+async function pgAComments() {
+  loading();
+  var r = await Promise.all([
+    sb.from('comments').select('*').order('created_at',{ascending:false}),
+    sb.from('news').select('id,title')
+  ]);
+  var list=r[0].data||[], news=r[1].data||[];
+  var html = '<div class="ph"><div><div class="ptitle">Comentários</div><div class="psub">' + list.length + ' comentário(s)</div></div></div>';
+  if (!list.length) {
+    html += '<div class="empty"><div class="eic">💬</div><div>Nenhum comentário</div></div>';
+  } else {
+    list.forEach(function(c){
+      var ref = news.find(function(n){ return n.id===c.ref_id; });
+      html += '<div class="cbox"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">' +
+        '<div><span class="cauth">👤 ' + c.author + '</span>' +
+        (ref?'<span style="color:#3a4060;font-size:12px;margin-left:8px">em "'+ref.title.slice(0,35)+'..."</span>':'') + '</div>' +
+        '<div style="display:flex;gap:7px;align-items:center"><span class="ctime">'+fdt(c.created_at)+'</span>' +
+        '<button type="button" class="btn btnd btnsm" onclick="delCA(\''+c.id+'\')">Excluir</button></div></div>' +
+        '<div class="ctxt">'+c.body+'</div></div>';
+    });
+  }
+  MC().innerHTML = html;
+}
+async function delCA(id) {
+  if (!confirm('Excluir?')) return;
+  await sb.from('comments').delete().eq('id',id);
+  toast('Excluído','ok'); pgAComments();
+}
+</script>
+</body>
+</html>
